@@ -65,6 +65,7 @@ const seedData = {
     ["Files", "Local", "User-owned"],
     ["Web", "Capability", "External services"]
   ],
+  tasks: [],
   settings: [
     ["Appearance", "Digital", "Holographic visual system"],
     ["Privacy", "Local-first", "Permission based"],
