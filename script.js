@@ -84,6 +84,11 @@ function setBackendStatus(text, online = true) {
     el.textContent = text;
     el.style.opacity = online ? "1" : ".65";
   }
+  const panel = $("#backendStatusPanel");
+  if (panel) {
+    panel.textContent = online ? "Online" : "Offline";
+    panel.style.opacity = online ? "1" : ".65";
+  }
 }
 
 async function backendHealthCheck() {
