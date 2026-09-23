@@ -64,6 +64,22 @@ export function parseCommand(raw) {
   m = input.match(/^(?:search|find|look for|look up|locate)\s+(?:for\s+)?(.+)$/i);
   if (m) return result("search", { query: clean(m[1]) });
 
+  // Device / web actions
+  if (/^(?:open|launch|start|go to)\s+(?:youtube|youtube\.com)$/i.test(input)) return result("open_url", { url: "https://www.youtube.com/", label: "YouTube" });
+  if (/^(?:open|launch|start|go to)\s+(?:google|google\.com)$/i.test(input)) return result("open_url", { url: "https://www.google.com/", label: "Google" });
+  if (/^(?:open|launch|start|go to)\s+(?:spotify|spotify\.com)$/i.test(input)) return result("open_url", { url: "https://open.spotify.com/", label: "Spotify" });
+
+  m = input.match(/^(?:open|launch|go to)\s+(https?:\/\/\S+)$/i);
+  if (m) return result("open_url", { url: m[1], label: m[1] });
+
+  // Messaging: the browser cannot look up a phone contact by name, but it can open WhatsApp when a number is supplied.
+  m = input.match(/^(?:write|send|compose)\s+(?:a\s+)?message\s+to\s+(?:whatsapp\s+)?(\+?\d[\d\s-]{6,})\s*(?:saying|that\s+says|:)?\s*(.*)$/i);
+  if (m) {
+    const phone = m[1].replace(/[^\d]/g, "");
+    const message = clean(m[2] || "");
+    return result("message", { phone, message });
+  }
+
   // Time
   if (/^(?:(?:what|tell me)\s+)?(?:is\s+)?(?:the\s+)?time(?:\s+is\s+it)?$/i.test(input)) {
     return result("time");
