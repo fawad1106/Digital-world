@@ -161,11 +161,14 @@ async function addItem(kind, title, subtitle = "Created by command core", detail
   return row;
 }
 
-let commandCount = Number(localStorage.getItem("pdw_command_count") || 0);\nfunction updateCoreState(state, capability = "COMMAND") { const el=$("#coreState"); const cap=$("#capability"); if(el) el.textContent=state; if(cap) cap.textContent=`CAPABILITY / ${capability}`; }\nasync function runCommand(raw) {
+let commandCount = Number(localStorage.getItem("pdw_command_count") || 0);
+function updateCoreState(state, capability = "COMMAND") { const el=$("#coreState"); const cap=$("#capability"); if(el) el.textContent=state; if(cap) cap.textContent=`CAPABILITY / ${capability}`; }
+async function runCommand(raw) {
   const c = raw.trim();
   if (!c) return;
   $("#response").classList.add("show");
-  $("#responseText").textContent = "Executing…";\n  updateCoreState("EXECUTING", "COMMAND");
+  $("#responseText").textContent = "Executing…";
+  updateCoreState("EXECUTING", "COMMAND");
 
   const parsed = parseCommand(c);
   let response = "";
@@ -253,14 +256,16 @@ let commandCount = Number(localStorage.getItem("pdw_command_count") || 0);\nfunc
       response = `I received "${c}". Try: "show projects", "add task …", "remember …", "create project …", "complete task …", or "search …".`;
     }
 
-    $("#responseText").textContent = response;\n    commandCount += 1; localStorage.setItem("pdw_command_count", commandCount); const countEl=$("#commandCount"); if(countEl) countEl.textContent=commandCount; updateCoreState("COMPLETE", parsed?.action?.replace("_"," ").toUpperCase() || "COMMAND");
+    $("#responseText").textContent = response;
+    commandCount += 1; localStorage.setItem("pdw_command_count", commandCount); const countEl=$("#commandCount"); if(countEl) countEl.textContent=commandCount; updateCoreState("COMPLETE", parsed?.action?.replace("_"," ").toUpperCase() || "COMMAND");
     const { error: historyError } = await supabase.from("pdw_commands").insert({
       client_id: clientId, command: c, response
     });
     if (historyError) console.warn("Command history could not be saved:", historyError.message);
   } catch (error) {
     console.error("Command failed:", error);
-    $("#responseText").textContent = `Command failed: ${error.message}`;\n    updateCoreState("ERROR", "SYSTEM");
+    $("#responseText").textContent = `Command failed: ${error.message}`;
+    updateCoreState("ERROR", "SYSTEM");
     setBackendStatus("Backend: degraded", false);
   }
 }
