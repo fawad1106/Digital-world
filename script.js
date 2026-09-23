@@ -1,4 +1,5 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { parseCommand } from "./command-engine.js";
 
 const SUPABASE_URL = "https://jsjiysgwymeuugjipyil.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_NGo65OXNEWzmJqSBy9KGuw_kwFQMDAq";
@@ -151,76 +152,92 @@ async function show(name) {
   $$(".nav button").forEach(b => b.classList.toggle("active", b.dataset.view === name));
 }
 
-async function command(raw) {
+async function addItem(kind, title, subtitle = "Created by command core", details = "") {
+  const { data: row, error } = await supabase.from("pdw_items").insert({
+    client_id: clientId, kind, title, subtitle, details
+  }).select().single();
+  if (error) throw error;
+  return row;
+}
+
+async function runCommand(raw) {
   const c = raw.trim();
   if (!c) return;
-
   $("#response").classList.add("show");
-  $("#responseText").textContent = "Interpreting command…";
+  $("#responseText").textContent = "Executing…";
 
-  let l = c.toLowerCase();
-  let response =
-    l.includes("today") ? "I found today's context: 3 tasks, 2 events and 1 deadline." :
-    l.includes("file") ? "File index is ready. Matching personal documents can be surfaced." :
-    l.includes("project") ? "Personal Digital World is the active project. UI V0.2 is running with backend storage." :
-    l.includes("notification") ? "There are 3 priority notifications." :
-    l.includes("memory") || l.includes("remember") ? "Relevant personal project memory is available." :
-    l.includes("connect") ? "Connected capabilities are standing by." :
-    l.includes("permission") ? "Permission mode is safe and user-controlled." :
-    `Command received: "${c}". The V0.2 command core is ready.`;
+  const parsed = parseCommand(c);
+  let response = "";
 
-  $("#responseText").textContent = response;
+  try {
+    if (parsed?.action === "show") {
+      await show(parsed.target);
+      response = `Opening ${parsed.target}.`;
+    } else if (parsed?.action === "add") {
+      await addItem(parsed.kind, parsed.title, parsed.kind === "tasks" ? "PENDING" : "Saved");
+      data = await loadData();
+      await show(parsed.kind);
+      response = parsed.kind === "tasks"
+        ? `Task created: ${parsed.title}`
+        : parsed.kind === "projects"
+          ? `Project created: ${parsed.title}`
+          : `Saved to memory: ${parsed.title}`;
+    } else if (parsed?.action === "complete") {
+      const { data: matches, error: findError } = await supabase.from("pdw_items")
+        .select("id,title").eq("client_id", clientId).eq("kind", "tasks")
+        .ilike("title", `%${parsed.query}%`).limit(1);
+      if (findError) throw findError;
+      if (!matches?.length) {
+        response = `I couldn't find a task matching "${parsed.query}".`;
+      } else {
+        const { error } = await supabase.from("pdw_items")
+          .update({ status: "completed", subtitle: "COMPLETED" }).eq("id", matches[0].id);
+        if (error) throw error;
+        data = await loadData();
+        await show("tasks");
+        response = `Completed: ${matches[0].title}`;
+      }
+    } else if (parsed?.action === "delete") {
+      const { data: matches, error: findError } = await supabase.from("pdw_items")
+        .select("id,title").eq("client_id", clientId).ilike("title", `%${parsed.query}%`).limit(1);
+      if (findError) throw findError;
+      if (!matches?.length) {
+        response = `I couldn't find "${parsed.query}".`;
+      } else {
+        const { error } = await supabase.from("pdw_items").delete().eq("id", matches[0].id);
+        if (error) throw error;
+        data = await loadData();
+        response = `Deleted: ${matches[0].title}`;
+      }
+    } else if (parsed?.action === "search") {
+      const { data: matches, error } = await supabase.from("pdw_items")
+        .select("kind,title,subtitle,details").eq("client_id", clientId)
+        .or(`title.ilike.%${parsed.query}%,details.ilike.%${parsed.query}%`).limit(12);
+      if (error) throw error;
+      $("#crumb").textContent = "SEARCH";
+      $("#view").classList.add("show");
+      $("#viewTitle").textContent = `Search: ${parsed.query}`;
+      $("#cards").className = "cards";
+      $("#cards").innerHTML = matches.length
+        ? matches.map(x => `<article class="card"><h3>${esc(x.title)}</h3><p><b>${esc(x.kind)}</b><br>${esc(x.subtitle)}<br>${esc(x.details)}</p></article>`).join("")
+        : "<article class='card'><h3>No results</h3><p>Nothing matched your command.</p></article>";
+      response = `Search complete: ${matches.length} result(s).`;
+    } else if (parsed?.action === "time") {
+      response = `It is ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+    } else {
+      response = `I received "${c}". Try: "show projects", "add task …", "remember …", "create project …", "complete task …", or "search …".`;
+    }
 
-  const { error } = await supabase.from("pdw_commands").insert({
-    client_id: clientId,
-    command: c,
-    response
-  });
-
-  if (error) {
-    console.warn("Command history could not be saved:", error.message);
+    $("#responseText").textContent = response;
+    const { error: historyError } = await supabase.from("pdw_commands").insert({
+      client_id: clientId, command: c, response
+    });
+    if (historyError) console.warn("Command history could not be saved:", historyError.message);
+  } catch (error) {
+    console.error("Command failed:", error);
+    $("#responseText").textContent = `Command failed: ${error.message}`;
     setBackendStatus("Backend: degraded", false);
   }
 }
 
-$("#commandForm").onsubmit = e => {
-  e.preventDefault();
-  command($("#command").value);
-};
 
-$("#close").onclick = () => $("#view").classList.remove("show");
-
-$("#nav").onclick = e => {
-  const b = e.target.closest("[data-view]");
-  if (b) show(b.dataset.view);
-};
-
-$$("[data-command]").forEach(b => b.onclick = () => command(b.dataset.command));
-
-setInterval(() => {
-  $("#clock").textContent = new Date().toLocaleTimeString([], { hour12: false });
-}, 1000);
-
-for (let i = 0; i < 70; i++) {
-  const p = document.createElement("i");
-  p.className = "p";
-  p.style.left = Math.random() * 100 + "%";
-  p.style.top = Math.random() * 100 + "%";
-  p.style.animationDelay = -Math.random() * 8 + "s";
-  $("#particles").appendChild(p);
-}
-
-(async function boot() {
-  try {
-    setBackendStatus("Backend: connecting…", true);
-    await backendHealthCheck();
-    await seedBackend();
-    data = await loadData();
-    setBackendStatus("Backend: ONLINE", true);
-    await show("home");
-  } catch (error) {
-    console.error("PDW backend connection failed:", error);
-    setBackendStatus("Backend: OFFLINE", false);
-    await show("home");
-  }
-})();
