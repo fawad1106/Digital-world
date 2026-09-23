@@ -174,6 +174,22 @@ async function runCommand(raw) {
     if (parsed?.action === "open_url") {
       window.open(parsed.url, "_blank", "noopener,noreferrer");
       response = `Opening ${parsed.label}.`;
+    } else if (parsed?.action === "search_web") {
+      const url = `https://www.google.com/search?q=${encodeURIComponent(parsed.query)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      response = `Searching Google for "${parsed.query}".`;
+    } else if (parsed?.action === "email") {
+      window.location.href = `mailto:${encodeURIComponent(parsed.email)}?body=${encodeURIComponent(parsed.message)}`;
+      response = `Opening email composer for ${parsed.email}.`;
+    } else if (parsed?.action === "dial") {
+      window.location.href = `tel:+${parsed.phone}`;
+      response = "Opening the phone dialer.";
+    } else if (parsed?.action === "sms") {
+      window.location.href = `sms:+${parsed.phone}?body=${encodeURIComponent(parsed.message)}`;
+      response = "Opening the SMS composer.";
+    } else if (parsed?.action === "maps") {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.query)}`, "_blank", "noopener,noreferrer");
+      response = `Opening maps for "${parsed.query}".`;
     } else if (parsed?.action === "message") {
       const encoded = encodeURIComponent(parsed.message || "");
       const url = `https://wa.me/${parsed.phone}${encoded ? `?text=${encoded}` : ""}`;
