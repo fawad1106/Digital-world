@@ -1,50 +1,78 @@
 const SECTION_ALIASES = {
-  home: "home", today: "calendar", calendar: "calendar", schedule: "calendar",
-  file: "files", files: "files", app: "apps", apps: "apps",
-  project: "projects", projects: "projects", memory: "memory",
-  notification: "notifications", notifications: "notifications",
-  connection: "connections", connections: "connections",
-  setting: "settings", settings: "settings"
+  home: "home", dashboard: "home", today: "calendar", day: "calendar",
+  calendar: "calendar", schedule: "calendar", events: "calendar",
+  file: "files", files: "files", documents: "files", document: "files",
+  app: "apps", apps: "apps", applications: "apps",
+  project: "projects", projects: "projects", work: "projects",
+  memory: "memory", memories: "memory", notes: "memory", note: "memory",
+  notification: "notifications", notifications: "notifications", alerts: "notifications",
+  connection: "connections", connections: "connections", connected: "connections",
+  setting: "settings", settings: "settings", preferences: "settings",
+  task: "tasks", tasks: "tasks", todo: "tasks", todos: "tasks"
 };
 
+function clean(text) {
+  return text.trim().replace(/[.!?]+$/, "").trim();
+}
+
+function result(action, extra = {}) {
+  return { action, ...extra };
+}
+
 export function parseCommand(raw) {
-  const input = raw.trim();
+  const input = clean(raw);
   if (!input) return null;
   const lower = input.toLowerCase();
 
-  let m = lower.match(/^(?:show|open|go to|take me to)\s+(?:my\s+)?(.+)$/i);
+  // Navigation / viewing
+  let m = lower.match(/^(?:show|open|view|display|go to|take me to|bring up|pull up|let me see|check)\s+(?:my\s+)?(.+)$/i);
   if (m) {
-    const key = m[1].trim().replace(/^(everything i need to do )?today$/, "today");
+    let key = clean(m[1]);
+    key = key.replace(/^(?:everything|all)\s+(?:i\s+)?need\s+to\s+(?:do|see)\s+/i, "");
     const target = SECTION_ALIASES[key];
-    if (target) return { action: "show", target };
-    if (key === "today") return { action: "show", target: "calendar" };
+    if (target) return result("show", { target });
+    if (/^(?:what'?s|what is)\s+(?:on|for)\s+today$/i.test(key) || key === "today") {
+      return result("show", { target: "calendar" });
+    }
   }
 
-  m = input.match(/^add\s+(?:a\s+)?task\s+(.+)$/i);
-  if (m) return { action: "add", kind: "tasks", title: m[1].trim() };
+  // Tasks
+  m = input.match(/^(?:add|create|make|new|set up)\s+(?:a\s+)?(?:new\s+)?(?:task|todo|to-do)\s*(?:to|for|called|named)?\s+(.+)$/i);
+  if (m) return result("add", { kind: "tasks", title: clean(m[1]) });
 
-  m = input.match(/^(?:remember|save)\s+(?:that\s+)?(.+)$/i);
-  if (m) return { action: "add", kind: "memory", title: m[1].trim() };
+  m = input.match(/^(?:remind me to|i need to|i have to|i should)\s+(.+)$/i);
+  if (m) return result("add", { kind: "tasks", title: clean(m[1]) });
 
-  m = input.match(/^(?:add|create)\s+(?:a\s+)?project\s+(.+)$/i);
-  if (m) return { action: "add", kind: "projects", title: m[1].trim() };
+  m = input.match(/^(?:complete|finish|done|mark)\s+(?:the\s+)?(?:task|todo|to-do)?\s*(?:as\s+)?(?:completed|done)?\s*(.+)$/i);
+  if (m) return result("complete", { kind: "tasks", query: clean(m[1]) });
 
-  m = input.match(/^(?:add|write)\s+(?:a\s+)?note\s+(.+)$/i);
-  if (m) return { action: "add", kind: "memory", title: m[1].trim() };
+  m = input.match(/^(?:delete|remove|cancel|trash)\s+(?:the\s+)?(?:task|todo|to-do)?\s*(.+)$/i);
+  if (m) return result("delete", { kind: "tasks", query: clean(m[1]) });
 
-  m = input.match(/^(?:complete|finish|done)\s+(?:task\s+)?(.+)$/i);
-  if (m) return { action: "complete", kind: "tasks", query: m[1].trim() };
+  // Projects
+  m = input.match(/^(?:add|create|make|start|new)\s+(?:a\s+)?(?:new\s+)?project\s*(?:called|named|for)?\s+(.+)$/i);
+  if (m) return result("add", { kind: "projects", title: clean(m[1]) });
 
-  m = input.match(/^(?:delete|remove)\s+(?:task\s+)?(.+)$/i);
-  if (m) return { action: "delete", query: m[1].trim() };
+  // Memory / notes
+  m = input.match(/^(?:remember|save|store|keep|note|make a note)\s+(?:that\s+)?(.+)$/i);
+  if (m) return result("add", { kind: "memory", title: clean(m[1]) });
 
-  m = input.match(/^(?:search|find)\s+(.+)$/i);
-  if (m) return { action: "search", query: m[1].trim() };
+  m = input.match(/^(?:add|write|create)\s+(?:a\s+)?(?:note|memory)\s*(?:saying|about)?\s+(.+)$/i);
+  if (m) return result("add", { kind: "memory", title: clean(m[1]) });
 
-  if (/^(?:what(?:'s| is)\s+)?(?:the\s+)?time(?:\s+is\s+it)?[?]?$/i.test(input)) {
-    return { action: "time" };
+  // Search
+  m = input.match(/^(?:search|find|look for|look up|locate)\s+(?:for\s+)?(.+)$/i);
+  if (m) return result("search", { query: clean(m[1]) });
+
+  // Time
+  if (/^(?:(?:what|tell me)\s+)?(?:is\s+)?(?:the\s+)?time(?:\s+is\s+it)?$/i.test(input)) {
+    return result("time");
   }
 
-  if (/^(?:add\s+task|remember|save|add\s+project|create\s+project|add\s+note|write\s+note|complete(?:\s+task)?|finish(?:\s+task)?|done(?:\s+task)?|delete(?:\s+task)?|remove(?:\s+task)?|search|find)$/i.test(input)) return null;
-  return { action: "unknown", raw: input };
+  // Common incomplete command prefixes
+  if (/^(?:show|open|view|display|go to|take me to|add|create|make|new|remember|save|search|find|complete|finish|delete|remove|cancel|remind me to|i need to)$/i.test(input)) {
+    return null;
+  }
+
+  return result("unknown", { raw: input });
 }
