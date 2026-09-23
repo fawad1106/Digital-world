@@ -171,7 +171,15 @@ async function runCommand(raw) {
   let response = "";
 
   try {
-    if (parsed?.action === "show") {
+    if (parsed?.action === "open_url") {
+      window.open(parsed.url, "_blank", "noopener,noreferrer");
+      response = `Opening ${parsed.label}.`;
+    } else if (parsed?.action === "message") {
+      const encoded = encodeURIComponent(parsed.message || "");
+      const url = `https://wa.me/${parsed.phone}${encoded ? `?text=${encoded}` : ""}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      response = parsed.message ? "Opening WhatsApp with your message ready to send." : "Opening WhatsApp chat.";
+    } else if (parsed?.action === "show") {
       await show(parsed.target);
       response = `Opening ${parsed.target}.`;
     } else if (parsed?.action === "add") {
