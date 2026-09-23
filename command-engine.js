@@ -43,8 +43,8 @@ export function parseCommand(raw) {
   m = input.match(/^(?:remind me to|i need to|i have to|i should)\s+(.+)$/i);
   if (m) return result("add", { kind: "tasks", title: clean(m[1]) });
 
-  m = input.match(/^(?:complete|finish|done|mark)\s+(?:the\s+)?(?:task|todo|to-do)?\s*(?:as\s+)?(?:completed|done)?\s*(.+)$/i);
-  if (m) return result("complete", { kind: "tasks", query: clean(m[1]) });
+  m = input.match(/^(?:complete|finish|done|mark)\s+(?:the\s+)?(?:task|todo|to-do)?\s*(.+)$/i);
+  if (m) return result("complete", { kind: "tasks", query: clean(m[1]).replace(/\s+(?:as\s+)?(?:completed|done)$/i, "") });
 
   m = input.match(/^(?:delete|remove|cancel|trash)\s+(?:the\s+)?(?:task|todo|to-do)?\s*(.+)$/i);
   if (m) return result("delete", { kind: "tasks", query: clean(m[1]) });
@@ -70,7 +70,7 @@ export function parseCommand(raw) {
   }
 
   // Common incomplete command prefixes
-  if (/^(?:show|open|view|display|go to|take me to|add|create|make|new|remember|save|search|find|complete|finish|delete|remove|cancel|remind me to|i need to)$/i.test(input)) {
+  if (/^(?:show|open|view|display|go to|take me to|add(?:\s+(?:a\s+)?(?:task|todo|to-do|project|note|memory))?|create|make|new|remember|save|search|find|complete|finish|delete|remove|cancel|remind me to|i need to)$/i.test(input)) {
     return null;
   }
 
