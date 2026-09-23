@@ -45,5 +45,6 @@ export function parseCommand(raw) {
     return { action: "time" };
   }
 
+  if (/^(?:add\s+task|remember|save|add\s+project|create\s+project|add\s+note|write\s+note|complete(?:\s+task)?|finish(?:\s+task)?|done(?:\s+task)?|delete(?:\s+task)?|remove(?:\s+task)?|search|find)$/i.test(input)) return null;
   return { action: "unknown", raw: input };
 }
