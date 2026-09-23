@@ -250,3 +250,49 @@ async function runCommand(raw) {
 }
 
 
+
+
+const form = $("#commandForm");
+form?.addEventListener("submit", event => {
+  event.preventDefault();
+  runCommand($("#command")?.value || "");
+});
+
+$("#nav")?.addEventListener("click", event => {
+  const button = event.target.closest("button[data-view]");
+  if (!button) return;
+  runCommand(`show ${button.dataset.view}`);
+});
+
+$$(".actions [data-command]").forEach(button => {
+  button.addEventListener("click", () => runCommand(button.dataset.command));
+});
+
+$("#close")?.addEventListener("click", () => {
+  $("#view")?.classList.remove("show");
+});
+
+function updateClock() {
+  const clock = $("#clock");
+  if (clock) clock.textContent = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+(async function initialize() {
+  try {
+    await backendHealthCheck();
+    setBackendStatus("Backend: online", true);
+    await seedBackend();
+    data = await loadData();
+    await show("home");
+  } catch (error) {
+    console.error("Digital World initialization failed:", error);
+    setBackendStatus("Backend: offline", false);
+    data = seedData;
+    await show("home");
+  }
+})();
