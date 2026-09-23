@@ -161,11 +161,11 @@ async function addItem(kind, title, subtitle = "Created by command core", detail
   return row;
 }
 
-async function runCommand(raw) {
+let commandCount = Number(localStorage.getItem("pdw_command_count") || 0);\nfunction updateCoreState(state, capability = "COMMAND") { const el=$("#coreState"); const cap=$("#capability"); if(el) el.textContent=state; if(cap) cap.textContent=`CAPABILITY / ${capability}`; }\nasync function runCommand(raw) {
   const c = raw.trim();
   if (!c) return;
   $("#response").classList.add("show");
-  $("#responseText").textContent = "Executing…";
+  $("#responseText").textContent = "Executing…";\n  updateCoreState("EXECUTING", "COMMAND");
 
   const parsed = parseCommand(c);
   let response = "";
@@ -253,14 +253,14 @@ async function runCommand(raw) {
       response = `I received "${c}". Try: "show projects", "add task …", "remember …", "create project …", "complete task …", or "search …".`;
     }
 
-    $("#responseText").textContent = response;
+    $("#responseText").textContent = response;\n    commandCount += 1; localStorage.setItem("pdw_command_count", commandCount); const countEl=$("#commandCount"); if(countEl) countEl.textContent=commandCount; updateCoreState("COMPLETE", parsed?.action?.replace("_"," ").toUpperCase() || "COMMAND");
     const { error: historyError } = await supabase.from("pdw_commands").insert({
       client_id: clientId, command: c, response
     });
     if (historyError) console.warn("Command history could not be saved:", historyError.message);
   } catch (error) {
     console.error("Command failed:", error);
-    $("#responseText").textContent = `Command failed: ${error.message}`;
+    $("#responseText").textContent = `Command failed: ${error.message}`;\n    updateCoreState("ERROR", "SYSTEM");
     setBackendStatus("Backend: degraded", false);
   }
 }
