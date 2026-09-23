@@ -17,3 +17,17 @@ test("parses WhatsApp message commands with a phone number", () => {
     message: "Hello"
   });
 });
+
+test("parses web search", () => {
+  assert.deepEqual(parseCommand("search Google for Python tutorials"), { action:"search_web", query:"Python tutorials", engine:"google" });
+});
+test("parses email", () => {
+  assert.deepEqual(parseCommand("email test@example.com saying Hello"), { action:"email", email:"test@example.com", message:"Hello" });
+});
+test("parses dial and SMS", () => {
+  assert.deepEqual(parseCommand("call +92 300 1234567"), { action:"dial", phone:"923001234567" });
+  assert.deepEqual(parseCommand("text +92 300 1234567 saying Hello"), { action:"sms", phone:"923001234567", message:"Hello" });
+});
+test("parses maps", () => {
+  assert.deepEqual(parseCommand("find maps for Lahore"), { action:"maps", query:"Lahore" });
+});
