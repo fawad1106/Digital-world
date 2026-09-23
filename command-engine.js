@@ -80,6 +80,22 @@ export function parseCommand(raw) {
     return result("message", { phone, message });
   }
 
+  // Web search, communication, and maps
+  m = input.match(/^(?:search|google)\s+(?:google\s+)?(?:for\s+)?(.+)$/i);
+  if (m) return result("search_web", { query: clean(m[1]), engine: "google" });
+
+  m = input.match(/^(?:email|mail)\s+(\S+@\S+)\s*(?:saying|that\s+says|:)\s*(.*)$/i);
+  if (m) return result("email", { email: m[1], message: clean(m[2]) });
+
+  m = input.match(/^(?:call|dial)\s+(\+?\d[\d\s-]{6,})$/i);
+  if (m) return result("dial", { phone: m[1].replace(/[^\d]/g, "") });
+
+  m = input.match(/^(?:text|sms)\s+(\+?\d[\d\s-]{6,})\s*(?:saying|that\s+says|:)\s*(.*)$/i);
+  if (m) return result("sms", { phone: m[1].replace(/[^\d]/g, ""), message: clean(m[2]) });
+
+  m = input.match(/^(?:find|show|open)\s+(?:maps?|directions?)\s+(?:for|to)\s+(.+)$/i);
+  if (m) return result("maps", { query: clean(m[1]) });
+
   // Time
   if (/^(?:(?:what|tell me)\s+)?(?:is\s+)?(?:the\s+)?time(?:\s+is\s+it)?$/i.test(input)) {
     return result("time");
