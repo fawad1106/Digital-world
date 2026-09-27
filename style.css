@@ -14,3 +14,14 @@
 .card{position:relative;overflow:hidden;transition:.2s}
 .card:before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--cyan);opacity:.35}
 .card:hover{transform:translateY(-2px);border-color:rgba(99,217,255,.45);box-shadow:0 0 25px rgba(22,140,255,.12)}
+
+.voice-panel{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(12px);width:min(520px,82%);padding:12px 16px;border-radius:15px;display:none;align-items:center;gap:12px;z-index:9;border-color:rgba(99,217,255,.4)}
+.voice-panel.show{display:flex;animation:voiceIn .2s ease forwards}
+.voice-panel b{font-size:9px;letter-spacing:.14em;color:var(--cyan);white-space:nowrap}
+.voice-panel span{font-size:11px;color:var(--muted);flex:1}
+.voice-panel button{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:7px;cursor:pointer}
+#voiceButton{font-size:16px;min-width:44px;cursor:pointer;border:1px solid var(--line);background:rgba(99,217,255,.06);color:var(--cyan);border-radius:12px}
+#voiceButton.recording{animation:voicePulse 1s ease-in-out infinite;box-shadow:0 0 22px rgba(99,217,255,.4)}
+@keyframes voicePulse{50%{transform:scale(1.08);filter:brightness(1.5)}}
+@keyframes voiceIn{to{transform:translateX(-50%) translateY(0)}}
+@media(max-width:700px){.voice-panel{bottom:100px;width:90%}}
