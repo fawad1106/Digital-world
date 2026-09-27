@@ -7,7 +7,7 @@ const SECTION_ALIASES = {
   memory: "memory", memories: "memory", notes: "memory", note: "memory",
   notification: "notifications", notifications: "notifications", alerts: "notifications",
   connection: "connections", connections: "connections", connected: "connections",
-  setting: "settings", settings: "settings", preferences: "settings",
+  setting: "settings", settings: "settings", preferences: "settings", activity: "activity", history: "activity", logs: "activity",
   task: "tasks", tasks: "tasks", todo: "tasks", todos: "tasks"
 };
 
