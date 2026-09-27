@@ -60,6 +60,33 @@ export function parseCommand(raw) {
   m = input.match(/^(?:add|write|create)\s+(?:a\s+)?(?:note|memory)\s*(?:saying|about)?\s+(.+)$/i);
   if (m) return result("add", { kind: "memory", title: clean(m[1]) });
 
+
+  // Web / app launch
+  m = input.match(/^open\\s+(?:the\\s+)?(.+)$/i);
+  if (m) {
+    const target = clean(m[1]);
+    const apps = {
+      youtube: { label: "YouTube", url: "https://www.youtube.com/" },
+      google: { label: "Google", url: "https://www.google.com/" },
+      gmail: { label: "Gmail", url: "https://mail.google.com/" },
+      maps: { label: "Google Maps", url: "https://maps.google.com/" },
+      spotify: { label: "Spotify", url: "https://open.spotify.com/" },
+      whatsapp: { label: "WhatsApp", url: "https://web.whatsapp.com/" },
+      instagram: { label: "Instagram", url: "https://www.instagram.com/" },
+      facebook: { label: "Facebook", url: "https://www.facebook.com/" },
+      chrome: { label: "Chrome", url: "https://www.google.com/chrome/" }
+    };
+    const key = target.toLowerCase();
+    if (apps[key]) return result("open_url", apps[key]);
+    return result("open_app", { query: target });
+  }
+
+  m = input.match(/^(?:search|search google|google)\\s+(.+)$/i);
+  if (m) return result("search_web", { query: clean(m[1]) });
+
+  m = input.match(/^(?:find|show|open)\\s+(?:maps|map)\\s+(?:for|to)\\s+(.+)$/i);
+  if (m) return result("maps", { query: clean(m[1]) });
+
   // Search
   m = input.match(/^(?:search|find|look for|look up|locate)\s+(?:for\s+)?(.+)$/i);
   if (m) return result("search", { query: clean(m[1]) });
