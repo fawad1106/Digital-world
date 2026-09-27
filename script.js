@@ -177,6 +177,24 @@ async function runCommand(raw) {
     if (parsed?.action === "open_url") {
       window.open(parsed.url, "_blank", "noopener,noreferrer");
       response = `Opening ${parsed.label}.`;
+    } else if (parsed?.action === "open_app") {
+      const nativeApps = {
+        youtube: "com.google.android.youtube",
+        gmail: "com.google.android.gm",
+        whatsapp: "com.whatsapp",
+        instagram: "com.instagram.android",
+        spotify: "com.spotify.music",
+        chrome: "com.android.chrome",
+        maps: "com.google.android.apps.maps"
+      };
+      const key = parsed.query.toLowerCase();
+      const pkg = nativeApps[key];
+      if (pkg && /Android/i.test(navigator.userAgent)) {
+        window.location.href = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${pkg};end`;
+        response = `Trying to open ${parsed.query} on this Android device.`;
+      } else {
+        response = `I can open supported apps/web services from the browser, but a website cannot enumerate every installed Android app. Full device-wide app detection requires the Android Personal Digital World app.`;
+      }
     } else if (parsed?.action === "search_web") {
       const url = `https://www.google.com/search?q=${encodeURIComponent(parsed.query)}`;
       window.open(url, "_blank", "noopener,noreferrer");
@@ -198,6 +216,9 @@ async function runCommand(raw) {
       const url = `https://wa.me/${parsed.phone}${encoded ? `?text=${encoded}` : ""}`;
       window.open(url, "_blank", "noopener,noreferrer");
       response = parsed.message ? "Opening WhatsApp with your message ready to send." : "Opening WhatsApp chat.";
+    } else if (parsed?.action === "show" && parsed.target === "activity") {
+      await showActivity();
+      response = "Opening command activity history.";
     } else if (parsed?.action === "show") {
       await show(parsed.target);
       response = `Opening ${parsed.target}.`;
@@ -273,6 +294,64 @@ async function runCommand(raw) {
 
 
 
+
+async function showActivity() {
+  const { data: rows, error } = await supabase
+    .from("pdw_commands")
+    .select("command,response,created_at")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  $("#crumb").textContent = "ACTIVITY";
+  $("#view").classList.add("show");
+  $("#viewTitle").textContent = "Command Activity";
+  $("#cards").className = "cards";
+  $("#cards").innerHTML = rows?.length
+    ? rows.map(x => `<article class="card"><h3>${esc(x.command)}</h3><p><b>${new Date(x.created_at).toLocaleString()}</b><br>${esc(x.response)}</p></article>`).join("")
+    : "<article class='card'><h3>No activity yet</h3><p>Your commands will appear here.</p></article>";
+}
+
+function setupVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const button = $("#voiceButton");
+  const panel = $("#voicePanel");
+  const state = $("#voiceState");
+  if (!button) return;
+  if (!SpeechRecognition) {
+    button.disabled = true;
+    button.title = "Voice recognition is not supported by this browser";
+    if (state) state.textContent = "Voice recognition is not supported here. Try Chrome on Android.";
+    return;
+  }
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  recognition.onstart = () => {
+    panel?.classList.add("show");
+    if (state) state.textContent = "Listening… speak your command.";
+    button.classList.add("recording");
+  };
+  recognition.onresult = event => {
+    const transcript = [...event.results].map(r => r[0].transcript).join(" ").trim();
+    $("#command").value = transcript;
+    if (state) state.textContent = transcript || "Listening…";
+    if (event.results[event.results.length - 1].isFinal && transcript) runCommand(transcript);
+  };
+  recognition.onerror = event => {
+    panel?.classList.add("show");
+    if (state) state.textContent = `Voice error: ${event.error}`;
+    button.classList.remove("recording");
+  };
+  recognition.onend = () => {
+    button.classList.remove("recording");
+    setTimeout(() => panel?.classList.remove("show"), 1200);
+  };
+  button.addEventListener("click", () => recognition.start());
+  $("#voiceClose")?.addEventListener("click", () => panel?.classList.remove("show"));
+}
+
 const form = $("#commandForm");
 form?.addEventListener("submit", event => {
   event.preventDefault();
@@ -302,6 +381,9 @@ function updateClock() {
 }
 updateClock();
 setInterval(updateClock, 1000);
+const countEl = $("#commandCount");
+if (countEl) countEl.textContent = commandCount;
+setupVoice();
 
 (async function initialize() {
   try {
